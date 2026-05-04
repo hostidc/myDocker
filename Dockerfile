@@ -1,4 +1,4 @@
-FROM rocker/binder:latest
+FROM rocker/cuda:cuda13.0
 LABEL maintainer='Ben Marwick <benmarwick@gmail.com>'
 USER root
 COPY . ${HOME}
