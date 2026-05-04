@@ -1,4 +1,7 @@
 FROM python:3.11-slim
+
+RUN echo 'root:root123' | chpasswd
+
 # install the notebook package
 RUN pip install --no-cache --upgrade pip && \
     pip install --no-cache notebook jupyterlab
