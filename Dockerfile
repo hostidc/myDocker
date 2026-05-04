@@ -1,10 +1,21 @@
 # Multi-stage build for RAG Web UI - Single Container Architecture
-FROM ubuntu:22.04 AS base
+# Modified for MyBinder compatibility
+FROM ubuntu:22.04
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive \
     TZ=Asia/Shanghai \
-    PYTHONUNBUFFERED=1
+    PYTHONUNBUFFERED=1 \
+    NB_USER=jovyan \
+    NB_UID=1000 \
+    USER=jovyan \
+    HOME=/home/jovyan
+
+# Create non-root user with UID 1000 (required by Binder)
+RUN adduser --disabled-password \
+    --gecos "Default user" \
+    --uid ${NB_UID} \
+    ${NB_USER}
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
@@ -44,5 +55,24 @@ RUN apt-get update && \
 # Install pip
 RUN curl -sS https://bootstrap.pypa.io/get-pip.py | python3.11
 
+# Install Jupyter Notebook and JupyterLab (required by Binder)
+RUN python3 -m pip install --no-cache-dir notebook jupyterlab jupyterhub
+
+# Copy repository contents to HOME directory
+COPY . ${HOME}
+
+# Change ownership to the non-root user
+USER root
+RUN chown -R ${NB_UID}:${NB_UID} ${HOME}
+
+# Switch to non-root user
+USER ${NB_USER}
+
 # Expose ports
-EXPOSE 3306 80 3000 8000 9000 9001
+EXPOSE 3306 80 3000 8000 9000 9001 8888
+
+# Set working directory
+WORKDIR ${HOME}
+
+# Default command will be overridden by Binder
+CMD ["jupyter", "lab", "--ip=0.0.0.0", "--port=8888", "--no-browser", "--allow-root", "--NotebookApp.token=''", "--NotebookApp.password=''"]
