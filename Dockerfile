@@ -1,23 +1,15 @@
-FROM rocker/tidyverse:4.1.0
-LABEL maintainer="Kenyon Ng <work@kenyon.xyz>"
+FROM rocker/tidyverse:4.5
 
-# libfftw3-dev (EBImage), libgdal-dev (s2), libudunits2-dev (units), the rest (sf), libglpk40(igraph)
-
+# 安装系统依赖和 Redis
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    libfftw3-dev \		
-    libgdal-dev \
-    libgeos++-dev \
-    libproj-dev \
-    libsqlite3-dev \ 		
-    libudunits2-dev \ 
-    libglpk40
+    redis-server
 
-RUN Rscript -e 'BiocManager::install(version = "3.13", ask = FALSE)'
-RUN Rscript -e 'BiocManager::install("EBImage", version = "3.13")'
+# 创建 Redis 数据目录并设置权限
+RUN mkdir -p /data/redis && \
+    chown -R nobody:nogroup /data/redis
 
-RUN install2.r --error \
-    s2 \
-    sf \
-    units
+# 暴露 Redis 默认端口
+EXPOSE 6379
 
-RUN installGithub.r OpenDroneMap/FIELDimageR
+# 启动 Redis 服务和 R 环境
+CMD ["sh", "-c", "redis-server --daemonize yes --dir /data/redis && exec bash"]
