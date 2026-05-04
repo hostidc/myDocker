@@ -1,15 +1,17 @@
-FROM rocker/tidyverse:4.5
+FROM python:3.9-slim
+# install the notebook package
+RUN pip install --no-cache --upgrade pip && \
+    pip install --no-cache notebook jupyterlab
 
-# 安装系统依赖和 Redis
-RUN apt-get update && apt-get install -y --no-install-recommends \
-    redis-server
+# create user with a home directory
+ARG NB_USER
+ARG NB_UID
+ENV USER ${NB_USER}
+ENV HOME /home/${NB_USER}
 
-# 创建 Redis 数据目录并设置权限
-RUN mkdir -p /data/redis && \
-    chown -R nobody:nogroup /data/redis
-
-# 暴露 Redis 默认端口
-EXPOSE 6379
-
-# 启动 Redis 服务和 R 环境
-CMD ["sh", "-c", "redis-server --daemonize yes --dir /data/redis && exec bash"]
+RUN adduser --disabled-password \
+    --gecos "Default user" \
+    --uid ${NB_UID} \
+    ${NB_USER}
+WORKDIR ${HOME}
+USER ${USER}
