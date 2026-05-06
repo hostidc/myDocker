@@ -14,8 +14,8 @@ ENV DEBIAN_FRONTEND=noninteractive \
     LC_ALL=C.UTF-8 \
     USER=${NB_USER} \
     HOME=/home/${NB_USER} \
-    MINIO_ROOT_USER=admin \
-    MINIO_ROOT_PASSWORD=12345678 \
+    MINIO_ROOT_USER=minioadmin \
+    MINIO_ROOT_PASSWORD=minioadmin \
     MINIO_DIR=/data/minio
 
 # ============================================
@@ -74,15 +74,15 @@ EXPOSE 8888 9000 9001
 # 启动命令：后台跑 MinIO + 前台 JupyterLab
 # ============================================
 CMD sh -c " \
-minio server ${MINIO_DIR} --address ':9000' --console-address ':9001' & \
-sleep 3 && \
-echo '===================================================' && \
-echo '✅ MinIO 已启动' && \
-echo '🔑 用户名: '${MINIO_ROOT_USER} && \
-echo '🔑 密码: '${MINIO_ROOT_PASSWORD} && \
-echo '🖥  MinIO 控制台: http://localhost:9001' && \
-echo '🌍 Binder 中访问: /proxy/9001' && \
-echo '===================================================' && \
+# minio server ${MINIO_DIR} --address ':9000' --console-address ':9001' & \
+# sleep 3 && \
+# echo '===================================================' && \
+# echo '✅ MinIO 已启动' && \
+# echo '🔑 用户名: '${MINIO_ROOT_USER} && \
+# echo '🔑 密码: '${MINIO_ROOT_PASSWORD} && \
+# echo '🖥  MinIO 控制台: http://localhost:9001' && \
+# echo '🌍 Binder 中访问: /proxy/9001' && \
+# echo '===================================================' && \
 exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser \
 --ServerApp.token='' --ServerApp.password='' \
 --ServerApp.allow_origin='*' \
