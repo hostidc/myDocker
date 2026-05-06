@@ -64,12 +64,17 @@ RUN pip3 install --no-cache-dir --upgrade pip && \
     psycopg2-binary \
     redis \
     minio \
-    chromadb
+    chromadb && \
+    # 确保 jupyter 命令在全局 PATH 中可用
+    ln -sf /usr/local/bin/jupyter /usr/bin/jupyter || true && \
+    ln -sf /usr/local/bin/jupyter-lab /usr/bin/jupyter-lab || true
 
 # ============================================
-# 第四阶段：确保 python3 命令可用（必须在 USER 之前）
+# 第四阶段：确保 python3 和 jupyter 命令可用（必须在 USER 之前）
 # ============================================
-RUN ln -sf $(which python3) /usr/local/bin/python3
+RUN ln -sf $(which python3) /usr/local/bin/python3 && \
+    # 验证 jupyter 是否可执行
+    which jupyter && jupyter --version
 
 # ============================================
 # 第五阶段：切换用户并设置工作目录
@@ -87,13 +92,42 @@ EXPOSE 8888
 
 # 使用 shell 形式的 CMD 直接判断环境变量并选择启动模式
 CMD if [ -n "$BINDER_LAUNCH_URL" ] || [ -n "$JUPYTERHUB_API_TOKEN" ] || [ -n "$JUPYTERHUB_SERVICE_PREFIX" ]; then \
+        echo "========================================="; \
         echo "检测到 MyBinder 环境，启动 Jupyter Lab..."; \
-        exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --notebook-dir=/home/jovyan/work --ServerApp.token='' --ServerApp.password=''; \
+        echo "========================================="; \
+        echo "Python 路径: $(which python3)"; \
+        echo "Python 版本: $(python3 --version)"; \
+        echo "Jupyter 路径: $(which jupyter 2>/dev/null || echo 'Not found')"; \
+        echo "Jupyter Lab 路径: $(which jupyter-lab 2>/dev/null || echo 'Not found')"; \
+        echo "工作目录: $(pwd)"; \
+        echo "用户: $(whoami)"; \
+        echo "========================================="; \
+        exec jupyter lab \
+            --ip=0.0.0.0 \
+            --port=8888 \
+            --no-browser \
+            --allow-root \
+            --notebook-dir=/home/jovyan/work \
+            --ServerApp.token='' \
+            --ServerApp.password='' \
+            --ServerApp.open_browser=False \
+            --Application.log_level=INFO; \
     elif [ -f /etc/supervisor/supervisord.conf ]; then \
         echo "标准模式：启动所有服务..."; \
         if [ -f /app/init.sh ]; then bash /app/init.sh; fi; \
         exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf; \
     else \
         echo "默认模式：启动 Jupyter Lab..."; \
-        exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --notebook-dir=/home/jovyan/work --ServerApp.token='' --ServerApp.password=''; \
+        echo "Python 路径: $(which python3)"; \
+        echo "Jupyter 路径: $(which jupyter 2>/dev/null || echo 'Not found')"; \
+        exec jupyter lab \
+            --ip=0.0.0.0 \
+            --port=8888 \
+            --no-browser \
+            --allow-root \
+            --notebook-dir=/home/jovyan/work \
+            --ServerApp.token='' \
+            --ServerApp.password='' \
+            --ServerApp.open_browser=False \
+            --Application.log_level=INFO; \
     fi
