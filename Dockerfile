@@ -67,16 +67,18 @@ RUN pip3 install --no-cache-dir --upgrade pip && \
     chromadb
 
 # ============================================
-# 第四阶段：设置工作目录和权限
+# 第四阶段：确保 python3 命令可用（必须在 USER 之前）
+# ============================================
+RUN ln -sf $(which python3) /usr/local/bin/python3
+
+# ============================================
+# 第五阶段：切换用户并设置工作目录
 # ============================================
 USER ${NB_USER}
 WORKDIR /home/${NB_USER}/work
 
-# 确保 python3 命令可用
-RUN ln -sf $(which python3) /usr/local/bin/python3
-
 # ============================================
-# 第五阶段：复制应用文件
+# 第六阶段：复制应用文件
 # ============================================
 COPY --chown=${NB_USER}:${NB_USER} . /home/${NB_USER}/work/
 
@@ -92,4 +94,3 @@ CMD if [ -n "$BINDER_LAUNCH_URL" ] || [ -n "$JUPYTERHUB_API_TOKEN" ]; then \
         if [ -f /app/init.sh ]; then bash /app/init.sh; fi; \
         exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf; \
     fi
-
