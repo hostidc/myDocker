@@ -30,15 +30,16 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 RUN wget https://dl.min.io/server/minio/release/linux-amd64/minio -O /usr/local/bin/minio && \
     chmod +x /usr/local/bin/minio
 
-# 安装 Python 依赖 + Jupyter 代理（让 MinIO 控制台可在 Binder 访问）
+# 安装 Python 依赖 + Jupyter 代理
 RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
     notebook jupyterlab jupyter-server-proxy \
     uvicorn fastapi alembic pymongo psycopg2-binary redis minio chromadb
 
-# 启用 jupyter-server-proxy 扩展
-RUN jupyter serverextension enable --py jupyter_server_proxy && \
-    jupyter labextension enable jupyter_server_proxy
+# ============================================
+# ✅ 修复：新版 Jupyter 启用 jupyter-server-proxy 的正确命令
+# ============================================
+RUN jupyter server extension enable --user jupyter_server_proxy
 
 # ============================================
 # 创建 Binder 必须的普通用户
