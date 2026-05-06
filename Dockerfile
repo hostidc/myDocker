@@ -1,5 +1,6 @@
 # ============================================
 # 基于 python:3.11-slim，支持 MyBinder 平台部署
+# 内置：JupyterLab + MinIO（可网页访问控制台）
 # ============================================
 FROM python:3.11-slim
 
@@ -7,58 +8,40 @@ FROM python:3.11-slim
 ARG NB_USER=jovyan
 ARG NB_UID=1000
 
-# 设置环境变量
+# 环境变量（含 MinIO 默认账号密码）
 ENV DEBIAN_FRONTEND=noninteractive \
     LANG=C.UTF-8 \
     LC_ALL=C.UTF-8 \
     USER=${NB_USER} \
-    HOME=/home/${NB_USER}
+    HOME=/home/${NB_USER} \
+    MINIO_ROOT_USER=admin \
+    MINIO_ROOT_PASSWORD=12345678 \
+    MINIO_DIR=/data/minio
 
 # ============================================
-# 第一阶段：安装系统依赖和 Python 包
+# 安装系统依赖 + MinIO + Python 工具包
 # ============================================
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    curl \
-    wget \
-    ca-certificates \
-    openssh-client \
-    git \
-    iproute2 \
-    procps \
-    net-tools \
-    dnsutils \
-    tree \
-    jq \
-    vim-tiny \
-    nano \
-    less \
-    unzip \
-    zip \
-    tar \
-    gzip \
-    && rm -rf /var/lib/apt/lists/* && \
-    # 下载并安装 MinIO Server
-    wget https://dl.min.io/server/minio/release/linux-amd64/minio -O /usr/local/bin/minio && \
-    chmod +x /usr/local/bin/minio && \
-    # 创建 MinIO 数据目录
-    mkdir -p /data/minio && \
-    # 安装 Python 包
-    pip install --no-cache-dir --upgrade pip && \
+    curl wget ca-certificates git iproute2 procps net-tools dnsutils \
+    tree jq vim-tiny nano less unzip zip tar gzip \
+    && rm -rf /var/lib/apt/lists/*
+
+# 安装 MinIO（linux/amd64 版本，兼容 Binder）
+RUN wget https://dl.min.io/server/minio/release/linux-amd64/minio -O /usr/local/bin/minio && \
+    chmod +x /usr/local/bin/minio
+
+# 安装 Python 依赖 + Jupyter 代理（让 MinIO 控制台可在 Binder 访问）
+RUN pip install --no-cache-dir --upgrade pip && \
     pip install --no-cache-dir \
-    notebook \
-    jupyterlab \
-    jupyterhub \
-    uvicorn \
-    fastapi \
-    alembic \
-    pymongo \
-    psycopg2-binary \
-    redis \
-    minio \
-    chromadb
+    notebook jupyterlab jupyter-server-proxy \
+    uvicorn fastapi alembic pymongo psycopg2-binary redis minio chromadb
+
+# 启用 jupyter-server-proxy 扩展
+RUN jupyter serverextension enable --py jupyter_server_proxy && \
+    jupyter labextension enable jupyter_server_proxy
 
 # ============================================
-# 第二阶段：创建非 root 用户（MyBinder 要求）
+# 创建 Binder 必须的普通用户
 # ============================================
 RUN adduser --disabled-password \
     --gecos "Default user" \
@@ -66,26 +49,41 @@ RUN adduser --disabled-password \
     ${NB_USER}
 
 # ============================================
-# 第三阶段：设置工作目录并复制文件
+# 创建目录并授权（解决权限问题）
+# ============================================
+RUN mkdir -p ${MINIO_DIR} && \
+    mkdir -p ${HOME}/work && \
+    chown -R ${NB_USER}:${NB_USER} ${HOME} /data
+
+# ============================================
+# 工作目录
 # ============================================
 WORKDIR ${HOME}/work
 COPY . ${HOME}/work
-RUN chown -R ${NB_USER}:${NB_USER} ${HOME}
-
-# 创建 MinIO 数据目录并设置权限
-RUN mkdir -p /data/minio && \
-    chown -R ${NB_USER}:${NB_USER} /data
 
 # ============================================
-# 第四阶段：切换用户
+# 切换普通用户
 # ============================================
 USER ${USER}
 
-# 暴露端口：Jupyter Lab (8888) + MinIO API (9000) + MinIO Console (9001)
+# 暴露端口
 EXPOSE 8888 9000 9001
 
-# 使用启动脚本同时运行 Jupyter Lab 和 MinIO
-CMD sh -c "minio server /data/minio --address ':9000' --console-address ':9001' &\
-           sleep 2 && \
-           echo 'MinIO started on port 9000, Console on port 9001' && \
-           exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --notebook-dir=/home/jovyan/work --ServerApp.token='' --ServerApp.password='' --ServerApp.open_browser=False --Application.log_level=INFO"
+# ============================================
+# 启动命令：后台跑 MinIO + 前台 JupyterLab
+# ============================================
+CMD sh -c " \
+minio server ${MINIO_DIR} --address ':9000' --console-address ':9001' & \
+sleep 3 && \
+echo '===================================================' && \
+echo '✅ MinIO 已启动' && \
+echo '🔑 用户名: '${MINIO_ROOT_USER} && \
+echo '🔑 密码: '${MINIO_ROOT_PASSWORD} && \
+echo '🖥  MinIO 控制台: http://localhost:9001' && \
+echo '🌍 Binder 中访问: /proxy/9001' && \
+echo '===================================================' && \
+exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser \
+--ServerApp.token='' --ServerApp.password='' \
+--ServerApp.allow_origin='*' \
+--notebook-dir=${HOME}/work \
+"
