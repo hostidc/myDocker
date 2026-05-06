@@ -27,6 +27,7 @@ ENV DEBIAN_FRONTEND=noninteractive \
 RUN apt-get update && apt-get install -y --no-install-recommends \
     curl wget ca-certificates git iproute2 procps net-tools dnsutils \
     tree jq vim-tiny nano less unzip zip tar gzip \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/*
 
 # 安装 MinIO
