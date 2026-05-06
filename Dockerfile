@@ -21,6 +21,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     curl \
     wget \
     ca-certificates \
+    openssh-client \
     && rm -rf /var/lib/apt/lists/* && \
     # 下载并安装 MinIO Server
     wget https://dl.min.io/server/minio/release/linux-amd64/minio -O /usr/local/bin/minio && \
