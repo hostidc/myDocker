@@ -86,11 +86,14 @@ COPY --chown=${NB_USER}:${NB_USER} . /home/${NB_USER}/work/
 EXPOSE 8888
 
 # 使用 shell 形式的 CMD 直接判断环境变量并选择启动模式
-CMD if [ -n "$BINDER_LAUNCH_URL" ] || [ -n "$JUPYTERHUB_API_TOKEN" ]; then \
+CMD if [ -n "$BINDER_LAUNCH_URL" ] || [ -n "$JUPYTERHUB_API_TOKEN" ] || [ -n "$JUPYTERHUB_SERVICE_PREFIX" ]; then \
         echo "检测到 MyBinder 环境，启动 Jupyter Lab..."; \
         exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --notebook-dir=/home/jovyan/work --ServerApp.token='' --ServerApp.password=''; \
-    else \
+    elif [ -f /etc/supervisor/supervisord.conf ]; then \
         echo "标准模式：启动所有服务..."; \
         if [ -f /app/init.sh ]; then bash /app/init.sh; fi; \
         exec /usr/bin/supervisord -n -c /etc/supervisor/supervisord.conf; \
+    else \
+        echo "默认模式：启动 Jupyter Lab..."; \
+        exec jupyter lab --ip=0.0.0.0 --port=8888 --no-browser --allow-root --notebook-dir=/home/jovyan/work --ServerApp.token='' --ServerApp.password=''; \
     fi
