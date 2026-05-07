@@ -1,0 +1,19 @@
+name: fastgpt-binder
+channels:
+  - conda-forge
+  - defaults
+dependencies:
+  - python=3.11
+  - pip
+  - notebook
+  - jupyterlab
+  - jupyterhub
+  - pip:
+    - uvicorn
+    - fastapi
+    - alembic
+    - pymongo
+    - psycopg2-binary
+    - redis
+    - minio
+    - chromadb

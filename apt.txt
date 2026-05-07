@@ -48,6 +48,8 @@ python3-venv
 python3-dev
 
 # NVM/Node.js 依赖
+# 注意：NVM 本身不是 apt 包，需要通过 postBuild 脚本安装
+# 以下包是编译 Node.js 原生模块所需的依赖
 build-essential
 libssl-dev
 pkg-config

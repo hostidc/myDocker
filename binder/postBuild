@@ -1,0 +1,61 @@
+#!/bin/bash
+# ============================================
+# MyBinder postBuild 脚本
+# 在 Docker 镜像构建后执行，用于安装 NVM 和 Node.js
+# ============================================
+
+set -e
+
+echo "=========================================="
+echo "开始安装 NVM 和 Node.js..."
+echo "=========================================="
+
+# 设置 NVM 版本和 Node.js 版本
+export NVM_VERSION="v0.40.1"
+export NODE_VERSION="20"
+export NVM_DIR="/home/jovyan/.nvm"
+
+# 创建 NVM 目录
+mkdir -p "$NVM_DIR"
+
+# 下载并安装 NVM
+echo "正在下载 NVM $NVM_VERSION..."
+curl -o- https://raw.githubusercontent.com/nvm-sh/nvm/${NVM_VERSION}/install.sh | bash
+
+# 加载 NVM
+export NVM_DIR="$HOME/.nvm"
+[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"
+[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"
+
+# 验证 NVM 安装
+echo "NVM 版本: $(nvm --version)"
+
+# 安装 Node.js
+echo "正在安装 Node.js $NODE_VERSION..."
+nvm install ${NODE_VERSION}
+nvm use ${NODE_VERSION}
+nvm alias default ${NODE_VERSION}
+
+# 安装 pnpm
+echo "正在安装 pnpm@8..."
+npm install -g pnpm@8
+
+# 验证安装
+echo "Node.js 版本: $(node --version)"
+echo "npm 版本: $(npm --version)"
+echo "pnpm 版本: $(pnpm --version)"
+
+# 将 NVM 配置写入 .bashrc 以持久化
+echo "" >> /home/jovyan/.bashrc
+echo "# NVM Configuration" >> /home/jovyan/.bashrc
+echo 'export NVM_DIR="$HOME/.nvm"' >> /home/jovyan/.bashrc
+echo '[ -s "$NVM_DIR/nvm.sh" ] && \. "$NVM_DIR/nvm.sh"' >> /home/jovyan/.bashrc
+echo '[ -s "$NVM_DIR/bash_completion" ] && \. "$NVM_DIR/bash_completion"' >> /home/jovyan/.bashrc
+
+# 设置正确的权限
+chown -R jovyan:jovyan /home/jovyan/.nvm
+chown jovyan:jovyan /home/jovyan/.bashrc
+
+echo "=========================================="
+echo "NVM 和 Node.js 安装完成！"
+echo "=========================================="
