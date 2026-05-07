@@ -12,7 +12,7 @@ echo "=========================================="
 
 # 设置 NVM 版本和 Node.js 版本
 export NVM_VERSION="v0.40.1"
-export NODE_VERSION="20"
+export NODE_VERSION="22"
 export NVM_DIR="/home/jovyan/.nvm"
 
 # 创建 NVM 目录
